@@ -1,0 +1,210 @@
+package pulumiapi
+
+import (
+	"bytes"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"net/http"
+	"net/url"
+)
+
+type Teams struct {
+	Teams []Team
+}
+
+type Team struct {
+	Type        string `json:"kind"`
+	Name        string
+	DisplayName string
+	Description string
+	Members     []TeamMember
+}
+
+type TeamMember struct {
+	Name        string
+	GithubLogin string
+	AvatarUrl   string
+	Role        string
+}
+
+func (c *Client) ListTeams(orgName string) ([]Team, error) {
+	var teams []Team
+	if len(orgName) == 0 {
+		return teams, errors.New("empty orgName")
+	}
+
+	path := fmt.Sprintf("orgs/%s/teams", orgName)
+	endpt := baseURL.ResolveReference(&url.URL{Path: path})
+
+	req, err := http.NewRequest("GET", endpt.String(), nil)
+	if err != nil {
+		return teams, err
+	}
+
+	req.Header.Add("Accept", "application/vnd.pulumi+8")
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Authorization", "token "+c.token)
+	res, err := c.c.Do(req)
+	if err != nil {
+		return teams, err
+	}
+
+	defer res.Body.Close()
+
+	switch res.StatusCode {
+	case 200:
+		var teamArray Teams
+		err = json.NewDecoder(res.Body).Decode(&teamArray)
+		if err != nil {
+			return teams, err
+		}
+
+		return teamArray.Teams, nil
+	case 400, 401, 403, 404, 500:
+		var errRes ErrorResponse
+		err = json.NewDecoder(res.Body).Decode(&errRes)
+		if err != nil {
+			panic(err)
+		}
+
+		if errRes.StatusCode == 0 {
+			errRes.StatusCode = res.StatusCode
+		}
+		return teams, &errRes
+
+	default:
+		return teams, fmt.Errorf("unexpected status code %d", res.StatusCode)
+	}
+}
+
+func (c *Client) GetTeam(orgName string, teamName string) (Team, error) {
+	var team Team
+	if len(orgName) == 0 {
+		return team, errors.New("empty orgName")
+	}
+
+	if len(teamName) == 0 {
+		return team, errors.New("empty orgName")
+	}
+
+	path := fmt.Sprintf("orgs/%s/teams/%s", orgName, teamName)
+	endpt := baseURL.ResolveReference(&url.URL{Path: path})
+
+	req, err := http.NewRequest("GET", endpt.String(), nil)
+	if err != nil {
+		return team, err
+	}
+
+	req.Header.Add("Accept", "application/vnd.pulumi+8")
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Authorization", "token "+c.token)
+	res, err := c.c.Do(req)
+	if err != nil {
+		return team, err
+	}
+
+	defer res.Body.Close()
+
+	switch res.StatusCode {
+	case 200:
+		err = json.NewDecoder(res.Body).Decode(&team)
+		if err != nil {
+			return team, err
+		}
+
+		return team, nil
+	case 400, 401, 403, 404, 500:
+		var errRes ErrorResponse
+		err = json.NewDecoder(res.Body).Decode(&errRes)
+		if err != nil {
+			panic(err)
+		}
+
+		if errRes.StatusCode == 0 {
+			errRes.StatusCode = res.StatusCode
+		}
+		return team, &errRes
+
+	default:
+		return team, fmt.Errorf("unexpected status code %d", res.StatusCode)
+	}
+}
+
+func (c *Client) CreateTeam(orgName string, teamType string, teamName string, displayName string, description string) (Team, error) {
+	var team Team
+
+	if len(orgName) == 0 {
+		return team, errors.New("orgname must not be empty")
+	}
+
+	if len(teamName) == 0 {
+		return team, errors.New("teamname must not be empty")
+	}
+
+	if len(teamType) == 0 {
+		return team, errors.New("teamtype must not be empty")
+	}
+
+	teamtypeList := []string{"github", "pulumi"}
+	if !Contains(teamtypeList, teamType) {
+		return team, errors.New("teamtype must be either `pulumi` or `github`")
+	}
+
+	path := fmt.Sprintf("orgs/%s/teams/%s", orgName, teamName)
+	endpt := baseURL.ResolveReference(&url.URL{Path: path})
+
+	values := map[string]string{"organization": orgName, "teamType": teamType, "name": teamName, "displayName": displayName, "description": description}
+	data, err := json.Marshal(values)
+	if err != nil {
+		return team, err
+	}
+
+	req, err := http.NewRequest("POST", endpt.String(), bytes.NewBuffer(data))
+	if err != nil {
+		return team, err
+	}
+
+	req.Header.Add("Accept", "application/vnd.pulumi+8")
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Authorization", "token "+c.token)
+	res, err := c.c.Do(req)
+	if err != nil {
+		return team, err
+	}
+
+	defer res.Body.Close()
+
+	switch res.StatusCode {
+	case 200:
+		err = json.NewDecoder(res.Body).Decode(&team)
+		if err != nil {
+			return team, err
+		}
+
+		return team, nil
+	case 400, 401, 403, 404, 500:
+		var errRes ErrorResponse
+		err = json.NewDecoder(res.Body).Decode(&errRes)
+		if err != nil {
+			panic(err)
+		}
+
+		if errRes.StatusCode == 0 {
+			errRes.StatusCode = res.StatusCode
+		}
+		return team, &errRes
+
+	default:
+		return team, fmt.Errorf("unexpected status code %d", res.StatusCode)
+	}
+}
+
+func (c *Client) DeleteTeam(orgName string, teamName string) error {
+	return nil
+}
+
+func (c *Client) AddMemberToTeam(orgName string, teamName string, userName string) error {
+
+	return nil
+}
