@@ -131,7 +131,7 @@ func (c *Client) GetTeam(orgName string, teamName string) (Team, error) {
 	}
 }
 
-func (c *Client) CreateTeam(orgName string, teamType string, teamName string, displayName string, description string) (Team, error) {
+func (c *Client) CreateTeam(orgName string, teamName string, teamType string, displayName string, description string) (Team, error) {
 	var team Team
 
 	if len(orgName) == 0 {
@@ -151,7 +151,7 @@ func (c *Client) CreateTeam(orgName string, teamType string, teamName string, di
 		return team, errors.New("teamtype must be either `pulumi` or `github`")
 	}
 
-	path := fmt.Sprintf("orgs/%s/teams/%s", orgName, teamName)
+	path := fmt.Sprintf("orgs/%s/teams/%s", orgName, teamType)
 	endpt := baseURL.ResolveReference(&url.URL{Path: path})
 
 	values := map[string]string{"organization": orgName, "teamType": teamType, "name": teamName, "displayName": displayName, "description": description}
@@ -176,7 +176,7 @@ func (c *Client) CreateTeam(orgName string, teamType string, teamName string, di
 	defer res.Body.Close()
 
 	switch res.StatusCode {
-	case 200:
+	case 200, 201:
 		err = json.NewDecoder(res.Body).Decode(&team)
 		if err != nil {
 			return team, err
@@ -201,7 +201,51 @@ func (c *Client) CreateTeam(orgName string, teamType string, teamName string, di
 }
 
 func (c *Client) DeleteTeam(orgName string, teamName string) error {
-	return nil
+
+	if len(orgName) == 0 {
+		return errors.New("orgname must not be empty")
+	}
+
+	if len(teamName) == 0 {
+		return errors.New("teamname must not be empty")
+	}
+
+	path := fmt.Sprintf("orgs/%s/teams/%s", orgName, teamName)
+	endpt := baseURL.ResolveReference(&url.URL{Path: path})
+
+	req, err := http.NewRequest("DELETE", endpt.String(), nil)
+	if err != nil {
+		return err
+	}
+
+	req.Header.Add("Accept", "application/vnd.pulumi+8")
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Authorization", "token "+c.token)
+
+	res, err := c.c.Do(req)
+	if err != nil {
+		return err
+	}
+
+	defer res.Body.Close()
+
+	switch res.StatusCode {
+	case 204:
+		return nil
+	case 400, 401, 403, 404, 405, 500:
+		var errRes ErrorResponse
+		err = json.NewDecoder(res.Body).Decode(&errRes)
+		if err != nil {
+			panic(err)
+		}
+
+		if errRes.StatusCode == 0 {
+			errRes.StatusCode = res.StatusCode
+		}
+		return &errRes
+	default:
+		return fmt.Errorf("unexpected status code %d", res.StatusCode)
+	}
 }
 
 func (c *Client) AddMemberToTeam(orgName string, teamName string, userName string) error {
