@@ -200,6 +200,70 @@ func (c *Client) CreateTeam(orgName string, teamName string, teamType string, di
 	}
 }
 
+func (c *Client) UpdateTeam(orgName string, teamName string, teamType string, displayName string, description string) (Team, error) {
+	var team Team
+
+	if len(orgName) == 0 {
+		return team, errors.New("orgname must not be empty")
+	}
+
+	if len(teamName) == 0 {
+		return team, errors.New("teamname must not be empty")
+	}
+
+	if len(teamType) == 0 {
+		return team, errors.New("teamtype must not be empty")
+	}
+
+	path := fmt.Sprintf("orgs/%s/teams/%s", orgName, teamName)
+	endpt := baseURL.ResolveReference(&url.URL{Path: path})
+
+	values := map[string]string{
+		"newDisplayName": displayName,
+		"newDescription": description,
+	}
+	data, err := json.Marshal(values)
+	if err != nil {
+		return team, err
+	}
+
+	req, err := http.NewRequest("PATCH", endpt.String(), bytes.NewBuffer(data))
+	if err != nil {
+		return team, err
+	}
+
+	req.Header.Add("Accept", "application/vnd.pulumi+8")
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Authorization", "token "+c.token)
+
+	res, err := c.c.Do(req)
+	if err != nil {
+		return team, err
+	}
+
+	defer res.Body.Close()
+
+	switch res.StatusCode {
+	case 204:
+		team.Description = description
+		team.DisplayName = displayName
+		return team, nil
+	case 400, 401, 403, 404, 405, 500:
+		var errRes ErrorResponse
+		err = json.NewDecoder(res.Body).Decode(&errRes)
+		if err != nil {
+			panic(err)
+		}
+
+		if errRes.StatusCode == 0 {
+			errRes.StatusCode = res.StatusCode
+		}
+		return team, &errRes
+	default:
+		return team, fmt.Errorf("unexpected status code %d", res.StatusCode)
+	}
+}
+
 func (c *Client) DeleteTeam(orgName string, teamName string) error {
 
 	if len(orgName) == 0 {
@@ -248,7 +312,82 @@ func (c *Client) DeleteTeam(orgName string, teamName string) error {
 	}
 }
 
-func (c *Client) AddMemberToTeam(orgName string, teamName string, userName string) error {
+func (c *Client) updateTeamMembership(orgName string, teamName string, userName string, addOrRemove string) error {
+	if len(orgName) == 0 {
+		return errors.New("orgname must not be empty")
+	}
 
-	return nil
+	if len(teamName) == 0 {
+		return errors.New("teamname must not be empty")
+	}
+
+	if len(userName) == 0 {
+		return errors.New("username must not be empty")
+	}
+
+	addOrRemoveValues := []string{"add", "remove"}
+	if !Contains(addOrRemoveValues, addOrRemove) {
+		return errors.New("value must be `add` or `remove`")
+	}
+
+	path := fmt.Sprintf("orgs/%s/teams/%s", orgName, teamName)
+	endpt := baseURL.ResolveReference(&url.URL{Path: path})
+
+	values := map[string]string{"memberAction": addOrRemove, "member": userName}
+	data, err := json.Marshal(values)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest("PATCH", endpt.String(), bytes.NewBuffer(data))
+	if err != nil {
+		return err
+	}
+
+	req.Header.Add("Accept", "application/vnd.pulumi+8")
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Authorization", "token "+c.token)
+
+	res, err := c.c.Do(req)
+	if err != nil {
+		return err
+	}
+
+	defer res.Body.Close()
+
+	switch res.StatusCode {
+	case 200, 204:
+		return nil
+	case 400, 401, 403, 404, 405, 500:
+		var errRes ErrorResponse
+		err = json.NewDecoder(res.Body).Decode(&errRes)
+		if err != nil {
+			panic(err)
+		}
+
+		if errRes.StatusCode == 0 {
+			errRes.StatusCode = res.StatusCode
+		}
+		return &errRes
+	default:
+		return fmt.Errorf("unexpected status code %d", res.StatusCode)
+	}
+}
+
+func (c *Client) AddMemberToTeam(orgName string, teamName string, userName string) error {
+	err := c.updateTeamMembership(orgName, teamName, userName, "add")
+	if err != nil {
+		return err
+	} else {
+		return nil
+	}
+}
+
+func (c *Client) DeleteMemberFromTeam(orgName string, teamName string, userName string) error {
+	err := c.updateTeamMembership(orgName, teamName, userName, "remove")
+	if err != nil {
+		return err
+	} else {
+		return nil
+	}
 }
