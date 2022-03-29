@@ -200,7 +200,7 @@ func (c *Client) CreateTeam(orgName string, teamName string, teamType string, di
 	}
 }
 
-func (c *Client) UpdateTeam(orgName string, teamName string, teamType string, displayName string, description string) (Team, error) {
+func (c *Client) UpdateTeam(orgName string, teamName string, displayName string, description string) (Team, error) {
 	var team Team
 
 	if len(orgName) == 0 {
@@ -209,10 +209,6 @@ func (c *Client) UpdateTeam(orgName string, teamName string, teamType string, di
 
 	if len(teamName) == 0 {
 		return team, errors.New("teamname must not be empty")
-	}
-
-	if len(teamType) == 0 {
-		return team, errors.New("teamtype must not be empty")
 	}
 
 	path := fmt.Sprintf("orgs/%s/teams/%s", orgName, teamName)
