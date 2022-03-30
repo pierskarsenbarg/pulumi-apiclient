@@ -67,7 +67,7 @@ func (c *Client) CreateAccessToken(description string) (AccessToken, error) {
 
 }
 
-func (c *Client) DeleteToken(tokenId string) error {
+func (c *Client) DeleteAccessToken(tokenId string) error {
 	if len(tokenId) == 0 {
 		return errors.New("tokenid length must be greater than zero")
 	}
