@@ -11,7 +11,7 @@ import (
 
 type AccessToken struct {
 	Id    string
-	Value string
+	Value string `json:"tokenValue"`
 }
 
 func (c *Client) CreateAccessToken(description string) (AccessToken, error) {
