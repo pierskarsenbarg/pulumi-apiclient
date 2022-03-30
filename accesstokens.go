@@ -10,8 +10,8 @@ import (
 )
 
 type AccessToken struct {
-	id    string
-	value string
+	Id    string
+	Value string
 }
 
 func (c *Client) CreateAccessToken(description string) (*AccessToken, error) {
