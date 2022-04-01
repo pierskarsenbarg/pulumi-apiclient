@@ -18,7 +18,7 @@ func (c *Client) CreateAccessToken(description string) (AccessToken, error) {
 	var accessToken AccessToken
 
 	path := "user/tokens"
-	endpt := baseURL.ResolveReference(&url.URL{Path: path})
+	endpt := c.baseurl.ResolveReference(&url.URL{Path: path})
 
 	values := map[string]string{"description": description}
 	data, err := json.Marshal(values)
@@ -73,7 +73,7 @@ func (c *Client) DeleteAccessToken(tokenId string) error {
 	}
 
 	path := fmt.Sprintf("user/tokens/%s", tokenId)
-	endpt := baseURL.ResolveReference(&url.URL{Path: path})
+	endpt := c.baseurl.ResolveReference(&url.URL{Path: path})
 
 	req, err := http.NewRequest("DELETE", endpt.String(), nil)
 	if err != nil {

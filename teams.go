@@ -35,7 +35,7 @@ func (c *Client) ListTeams(orgName string) ([]Team, error) {
 	}
 
 	path := fmt.Sprintf("orgs/%s/teams", orgName)
-	endpt := baseURL.ResolveReference(&url.URL{Path: path})
+	endpt := c.baseurl.ResolveReference(&url.URL{Path: path})
 
 	req, err := http.NewRequest("GET", endpt.String(), nil)
 	if err != nil {
@@ -89,7 +89,7 @@ func (c *Client) GetTeam(orgName string, teamName string) (Team, error) {
 	}
 
 	path := fmt.Sprintf("orgs/%s/teams/%s", orgName, teamName)
-	endpt := baseURL.ResolveReference(&url.URL{Path: path})
+	endpt := c.baseurl.ResolveReference(&url.URL{Path: path})
 
 	req, err := http.NewRequest("GET", endpt.String(), nil)
 	if err != nil {
@@ -152,7 +152,7 @@ func (c *Client) CreateTeam(orgName string, teamName string, teamType string, di
 	}
 
 	path := fmt.Sprintf("orgs/%s/teams/%s", orgName, teamType)
-	endpt := baseURL.ResolveReference(&url.URL{Path: path})
+	endpt := c.baseurl.ResolveReference(&url.URL{Path: path})
 
 	values := map[string]string{"organization": orgName, "teamType": teamType, "name": teamName, "displayName": displayName, "description": description}
 	data, err := json.Marshal(values)
@@ -212,7 +212,7 @@ func (c *Client) UpdateTeam(orgName string, teamName string, displayName string,
 	}
 
 	path := fmt.Sprintf("orgs/%s/teams/%s", orgName, teamName)
-	endpt := baseURL.ResolveReference(&url.URL{Path: path})
+	endpt := c.baseurl.ResolveReference(&url.URL{Path: path})
 
 	values := map[string]string{
 		"newDisplayName": displayName,
@@ -271,7 +271,7 @@ func (c *Client) DeleteTeam(orgName string, teamName string) error {
 	}
 
 	path := fmt.Sprintf("orgs/%s/teams/%s", orgName, teamName)
-	endpt := baseURL.ResolveReference(&url.URL{Path: path})
+	endpt := c.baseurl.ResolveReference(&url.URL{Path: path})
 
 	req, err := http.NewRequest("DELETE", endpt.String(), nil)
 	if err != nil {
@@ -327,7 +327,7 @@ func (c *Client) updateTeamMembership(orgName string, teamName string, userName 
 	}
 
 	path := fmt.Sprintf("orgs/%s/teams/%s", orgName, teamName)
-	endpt := baseURL.ResolveReference(&url.URL{Path: path})
+	endpt := c.baseurl.ResolveReference(&url.URL{Path: path})
 
 	values := map[string]string{"memberAction": addOrRemove, "member": userName}
 	data, err := json.Marshal(values)

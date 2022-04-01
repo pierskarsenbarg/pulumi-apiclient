@@ -43,7 +43,7 @@ func (c *Client) AddMemberToOrg(userName string, orgName string, role string) er
 	}
 
 	path := fmt.Sprintf("orgs/%s/members/%s", orgName, userName)
-	endpt := baseURL.ResolveReference(&url.URL{Path: path})
+	endpt := c.baseurl.ResolveReference(&url.URL{Path: path})
 
 	values := map[string]string{"role": role}
 	data, err := json.Marshal(values)
@@ -100,7 +100,7 @@ func (c *Client) ListOrgMembers(orgName string) ([]Member, error) {
 	}
 
 	path := fmt.Sprintf("orgs/%s/members", orgName)
-	endpt := baseURL.ResolveReference(&url.URL{Path: path})
+	endpt := c.baseurl.ResolveReference(&url.URL{Path: path})
 
 	req, err := http.NewRequest("GET", endpt.String(), nil)
 	if err != nil {
@@ -157,7 +157,7 @@ func (c *Client) DeleteMemberFromOrg(orgName string, userName string) error {
 	}
 
 	path := fmt.Sprintf("orgs/%s/members/%s", orgName, userName)
-	endpt := baseURL.ResolveReference(&url.URL{Path: path})
+	endpt := c.baseurl.ResolveReference(&url.URL{Path: path})
 
 	req, err := http.NewRequest("DELETE", endpt.String(), nil)
 	if err != nil {
