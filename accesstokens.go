@@ -14,7 +14,7 @@ type AccessToken struct {
 	Value string `json:"tokenValue"`
 }
 
-func (c *Client) CreateAccessToken(description string) (AccessToken, error) {
+func (c *Client) CreateAccessToken(description string) (*AccessToken, error) {
 	var accessToken AccessToken
 
 	path := "user/tokens"
@@ -23,12 +23,12 @@ func (c *Client) CreateAccessToken(description string) (AccessToken, error) {
 	values := map[string]string{"description": description}
 	data, err := json.Marshal(values)
 	if err != nil {
-		return accessToken, err
+		return nil, err
 	}
 
 	req, err := http.NewRequest("POST", endpt.String(), bytes.NewBuffer(data))
 	if err != nil {
-		return accessToken, err
+		return nil, err
 	}
 
 	req.Header.Add("Accept", "application/vnd.pulumi+8")
@@ -36,7 +36,7 @@ func (c *Client) CreateAccessToken(description string) (AccessToken, error) {
 	req.Header.Add("Authorization", "token "+c.token)
 	res, err := c.c.Do(req)
 	if err != nil {
-		return accessToken, err
+		return nil, err
 	}
 
 	defer res.Body.Close()
@@ -45,10 +45,10 @@ func (c *Client) CreateAccessToken(description string) (AccessToken, error) {
 	case 200, 201:
 		err = json.NewDecoder(res.Body).Decode(&accessToken)
 		if err != nil {
-			return accessToken, err
+			return nil, err
 		}
 
-		return accessToken, nil
+		return &accessToken, nil
 	case 400, 401, 403, 404, 500:
 		var errRes ErrorResponse
 		err = json.NewDecoder(res.Body).Decode(&errRes)
@@ -59,10 +59,10 @@ func (c *Client) CreateAccessToken(description string) (AccessToken, error) {
 		if errRes.StatusCode == 0 {
 			errRes.StatusCode = res.StatusCode
 		}
-		return accessToken, &errRes
+		return nil, &errRes
 
 	default:
-		return accessToken, fmt.Errorf("unexpected status code %d", res.StatusCode)
+		return nil, fmt.Errorf("unexpected status code %d", res.StatusCode)
 	}
 
 }

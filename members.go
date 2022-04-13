@@ -93,10 +93,9 @@ func (c *Client) AddMemberToOrg(userName string, orgName string, role string) er
 	}
 }
 
-func (c *Client) ListOrgMembers(orgName string) ([]Member, error) {
-	var members []Member
+func (c *Client) ListOrgMembers(orgName string) (*[]Member, error) {
 	if len(orgName) == 0 {
-		return members, errors.New("empty orgName")
+		return nil, errors.New("empty orgName")
 	}
 
 	path := fmt.Sprintf("orgs/%s/members", orgName)
@@ -104,7 +103,7 @@ func (c *Client) ListOrgMembers(orgName string) ([]Member, error) {
 
 	req, err := http.NewRequest("GET", endpt.String(), nil)
 	if err != nil {
-		return members, err
+		return nil, err
 	}
 
 	req.Header.Add("Accept", "application/vnd.pulumi+8")
@@ -115,7 +114,7 @@ func (c *Client) ListOrgMembers(orgName string) ([]Member, error) {
 
 	res, err := c.c.Do(req)
 	if err != nil {
-		return members, err
+		return nil, err
 	}
 
 	defer res.Body.Close()
@@ -125,10 +124,10 @@ func (c *Client) ListOrgMembers(orgName string) ([]Member, error) {
 		var memberArray Members
 		err = json.NewDecoder(res.Body).Decode(&memberArray)
 		if err != nil {
-			return members, err
+			return nil, err
 		}
 
-		return memberArray.Members, nil
+		return &memberArray.Members, nil
 	case 400, 401, 403, 404, 500:
 		var errRes ErrorResponse
 		err = json.NewDecoder(res.Body).Decode(&errRes)
@@ -139,10 +138,10 @@ func (c *Client) ListOrgMembers(orgName string) ([]Member, error) {
 		if errRes.StatusCode == 0 {
 			errRes.StatusCode = res.StatusCode
 		}
-		return members, &errRes
+		return nil, &errRes
 
 	default:
-		return members, fmt.Errorf("unexpected status code %d", res.StatusCode)
+		return nil, fmt.Errorf("unexpected status code %d", res.StatusCode)
 	}
 
 }
